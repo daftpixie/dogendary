@@ -1,6 +1,6 @@
 // ============================================
-// Dogendary Wallet - Navigation Component
-// Bottom tab navigation
+// Dogendary Wallet - Navigation Component (FIXED)
+// Fixed: Import ViewType from types (re-exported from store)
 // ============================================
 
 import React from 'react';

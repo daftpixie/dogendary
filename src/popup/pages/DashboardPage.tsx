@@ -1,11 +1,12 @@
 // ============================================
-// Dogendary Wallet - Dashboard Page
-// Main wallet overview with balance and actions
+// Dogendary Wallet - Dashboard Page (FIXED)
+// Fixed: balance null check, selectActiveAccount export, activeAccount type
 // ============================================
 
 import React, { useEffect } from 'react';
 import { Send, Download, Image, Coins, Clock, RefreshCw } from 'lucide-react';
 import { useWalletStore, selectActiveAccount } from '../hooks/useWalletStore';
+import type { WalletAccount } from '@/types';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { formatDoge, formatRelativeTime, truncateAddress } from '@/lib/utils';
@@ -21,15 +22,16 @@ export const DashboardPage: React.FC = () => {
     refreshData 
   } = useWalletStore();
   
-  const activeAccount = useWalletStore(selectActiveAccount);
+  // FIX: Type activeAccount explicitly
+  const activeAccount = useWalletStore(selectActiveAccount) as WalletAccount | null;
 
   // Refresh data on mount
   useEffect(() => {
     refreshData();
   }, [refreshData]);
 
-  // Format balance to DOGE
-  const dogeBalance = balance.total / 100000000;
+  // FIX: Add null check for balance
+  const dogeBalance = balance ? balance.total / 100000000 : 0;
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
@@ -46,6 +48,7 @@ export const DashboardPage: React.FC = () => {
         </h2>
         <p className="text-neon-cyan font-medium">DOGE</p>
         
+        {/* FIX: activeAccount is now properly typed */}
         {activeAccount && (
           <p className="text-xs text-text-tertiary mt-3">
             {truncateAddress(activeAccount.address, 8, 8)}
@@ -120,42 +123,40 @@ export const DashboardPage: React.FC = () => {
 
         <div className="space-y-2">
           {transactions.slice(0, 5).map((tx) => (
-            <Card key={tx.txid} padding="sm" hover>
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  tx.type === 'receive' ? 'bg-neon-green/20' : 'bg-neon-orange/20'
-                }`}>
-                  {tx.type === 'receive' ? (
-                    <Download className="w-4 h-4 text-neon-green" />
-                  ) : (
-                    <Send className="w-4 h-4 text-neon-orange" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-text-primary capitalize">
-                    {tx.type}
-                  </p>
-                  <p className="text-xs text-text-tertiary">
-                    {formatRelativeTime(tx.timestamp)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className={`text-sm font-medium ${
-                    tx.type === 'receive' ? 'text-neon-green' : 'text-text-primary'
+            <Card key={tx.txid || tx.id} variant="default" padding="sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    tx.type === 'receive' 
+                      ? 'bg-neon-green/10 text-neon-green' 
+                      : 'bg-neon-cyan/10 text-neon-cyan'
                   }`}>
-                    {tx.type === 'receive' ? '+' : '-'}{formatDoge(tx.amount)}
-                  </p>
-                  <p className="text-xs text-text-tertiary">DOGE</p>
+                    {tx.type === 'receive' ? <Download className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-text-primary">
+                      {tx.type === 'receive' ? 'Received' : 'Sent'}
+                    </p>
+                    <p className="text-xs text-text-tertiary">
+                      <Clock className="w-3 h-3 inline mr-1" />
+                      {formatRelativeTime(tx.timestamp)}
+                    </p>
+                  </div>
                 </div>
+                <p className={`text-sm font-medium ${
+                  tx.type === 'receive' ? 'text-neon-green' : 'text-text-primary'
+                }`}>
+                  {tx.type === 'receive' ? '+' : '-'}{formatDoge(tx.amount)} DOGE
+                </p>
               </div>
             </Card>
           ))}
 
           {transactions.length === 0 && (
-            <Card variant="default" padding="md" className="text-center">
+            <div className="text-center py-8">
               <Clock className="w-8 h-8 text-text-tertiary mx-auto mb-2" />
               <p className="text-sm text-text-secondary">No transactions yet</p>
-            </Card>
+            </div>
           )}
         </div>
       </div>

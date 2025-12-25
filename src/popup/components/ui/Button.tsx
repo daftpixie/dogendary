@@ -1,6 +1,6 @@
 // ============================================
-// Dogendary Wallet - Button Component
-// Styled button with variants
+// Dogendary Wallet - Button Component (FIXED)
+// Added 'outline' variant
 // ============================================
 
 import React, { forwardRef } from 'react';
@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   leftIcon?: React.ReactNode;
@@ -56,6 +56,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         'bg-neon-orange/10 border border-neon-orange/30',
         'text-neon-orange',
         'hover:bg-neon-orange/20',
+        'active:scale-[0.98]',
+        'disabled:opacity-50 disabled:cursor-not-allowed'
+      ),
+      outline: cn(
+        'bg-transparent border border-neon-cyan/50',
+        'text-neon-cyan',
+        'hover:bg-neon-cyan/10 hover:border-neon-cyan',
         'active:scale-[0.98]',
         'disabled:opacity-50 disabled:cursor-not-allowed'
       ),

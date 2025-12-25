@@ -1,15 +1,16 @@
 // ============================================
-// Dogendary Wallet - Header Component
-// Main app header with logo and account info
+// Dogendary Wallet - Header Component (FIXED)
+// Fixed: balance null check
 // ============================================
 
 import React from 'react';
 import { Lock, Settings, User } from 'lucide-react';
-import { useWalletStore } from '@/popup/hooks/useWalletStore';
+import { useWalletStore, selectActiveAccount } from '@/popup/hooks/useWalletStore';
 import { truncateAddress } from '@/lib/utils';
 
 export const Header: React.FC = () => {
-  const { activeAccount, lockWallet, setView, balance } = useWalletStore();
+  const { lockWallet, setView, balance } = useWalletStore();
+  const activeAccount = useWalletStore(selectActiveAccount);
 
   const handleLock = () => {
     lockWallet();
@@ -24,6 +25,9 @@ export const Header: React.FC = () => {
     setView('accounts');
   };
 
+  // FIX: Add null check for balance
+  const displayBalance = balance ? (balance.total / 100000000).toFixed(4) : '0.0000';
+
   return (
     <header className="flex items-center justify-between px-4 py-3 border-b border-surface-3 bg-surface-1/80 backdrop-blur-md">
       <div className="flex items-center gap-3">
@@ -34,7 +38,7 @@ export const Header: React.FC = () => {
         <div>
           <h1 className="text-sm font-bold text-text-primary">Dogendary</h1>
           <p className="text-xs text-neon-cyan">
-            {(balance.total / 100000000).toFixed(4)} DOGE
+            {displayBalance} DOGE
           </p>
         </div>
       </div>

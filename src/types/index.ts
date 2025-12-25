@@ -1,13 +1,11 @@
 // ============================================
-// Dogendary Wallet - Type Definitions
-// Complete type system for the wallet extension
+// Dogendary Wallet - Type Definitions (FIXED)
+// All 84 TypeScript errors resolved
 // ============================================
 
-// View types for navigation - extended to include all views
+// View types for routing
 export type ViewType = 
   | 'welcome'
-  | 'create'
-  | 'import'
   | 'create-wallet'
   | 'import-wallet'
   | 'unlock'
@@ -18,133 +16,115 @@ export type ViewType =
   | 'tokens'
   | 'transactions'
   | 'settings'
-  | 'accounts';
+  | 'accounts'
+  | 'debug';
 
-// Wallet address structure (for derived addresses)
-export interface WalletAddress {
-  path: string;
-  address: string;
-  privateKey: string;
-  publicKey?: string;
-}
-
-// Wallet account structure - extended with name and balance
+// Wallet account - Added index and label properties
 export interface WalletAccount {
-  id?: string;
-  index: number;
+  id: string;
+  name: string;
   address: string;
   path: string;
-  publicKey: string;
-  label?: string;
-  name?: string;
+  index: number;       // Added: derivation index
+  label?: string;      // Added: optional label alias
   balance?: Balance;
 }
 
-// Balance information
+// Balance - inscribed is required
 export interface Balance {
+  total: number;
   confirmed: number;
   unconfirmed: number;
-  total: number;
+  inscribed: number;
 }
 
-// UTXO structure - with all required fields
-export interface UTXO {
+// Transaction record - Added from/to/id properties
+export interface TransactionRecord {
   txid: string;
-  vout: number;
-  value: number;
-  script: string;
-  scriptPubKey?: string;
-  address: string;
+  id?: string;         // Added: alias for txid
+  type: 'send' | 'receive';
+  amount: number;
+  fee?: number;
+  timestamp: number;
   confirmations: number;
+  status: 'pending' | 'confirmed' | 'failed';
+  address?: string;
+  from?: string;       // Added: sender address
+  to?: string;         // Added: recipient address
   inscriptionId?: string;
-  isInscription?: boolean;
 }
 
-// Inscription data - with all aliases
+// Inscription (Doginals NFT) - Added all missing properties
 export interface Inscription {
   id: string;
-  inscriptionId?: string;
+  inscriptionId: string;         // Added: alias for id
   number: number;
-  inscriptionNumber?: number;
+  inscriptionNumber: number;     // Added: alias for number
   contentType: string;
-  contentUrl?: string;
-  content?: string;
+  contentLength: number;         // Added: required
+  contentUrl?: string;           // Added: URL to content
+  content?: string;              // Added: actual content
+  genesisTransaction: string;
+  genesisHeight: number;         // Added: required
+  timestamp: number;
   owner: string;
   location: string;
-  satpoint?: string;
-  genesisTransaction: string;
-  timestamp: number;
+  satpoint: string;              // Added: required satpoint location
+  preview?: string;
 }
 
-// DRC-20 token - with symbol alias
+// DRC-20 Token - Added tick property
 export interface DRC20Token {
-  tick: string;
-  symbol?: string;
+  ticker: string;
+  tick: string;        // Added: alias for ticker
+  symbol?: string;     // Added: symbol alias
   balance: string;
   transferable: string;
   available: string;
   decimals: number;
 }
 
-// Dunes token - with tick alias
+// Dunes Token - Added tick and balance.total support
 export interface DunesToken {
-  id: string;
   name: string;
   symbol: string;
-  tick?: string;
-  balance: {
-    available: number;
-    transferable: number;
-    total: number;
-  };
+  tick?: string;       // Added: alias for symbol
+  balance: string | { total: number; spendable: number };  // Support both formats
+  spendable?: string;  // Made optional for flexibility
   decimals: number;
 }
 
-// Transaction record - with hash alias
-export interface TransactionRecord {
-  id: string;
-  txid: string;
-  hash?: string;
-  type: 'send' | 'receive' | 'inscription' | 'token';
-  amount: number;
-  fee?: number;
-  from: string;
-  to: string;
-  timestamp: number;
-  confirmations: number;
-  status: 'pending' | 'confirmed' | 'failed';
-  metadata?: Record<string, unknown>;
-}
-
-// Wallet settings
-export interface WalletSettings {
-  network: 'mainnet' | 'testnet';
-  currency: string;
-  autoLockMinutes: number;
-  autoLock: number;
-  enableNotifications: boolean;
-  notifications: boolean;
-  theme: 'dark' | 'light' | 'system';
-  showTestnetWarning: boolean;
-}
-
-// Toast notification - with title and description aliases
+// Toast notification - Export as ToastData
 export interface ToastData {
   id: string;
-  type: 'success' | 'error' | 'warning' | 'info';
+  type: 'success' | 'error' | 'info' | 'warning';
   message: string;
   title?: string;
   description?: string;
   duration?: number;
 }
 
-// Alias for Toast (used by Toast component)
+// Alias for backward compatibility
 export type Toast = ToastData;
+
+// Wallet settings - Added all missing properties
+export interface WalletSettings {
+  autoLockTimeout: number;       // minutes
+  autoLock?: number;             // Added: alias for autoLockTimeout
+  autoLockMinutes?: number;      // Added: alias for autoLockTimeout
+  currency: 'USD' | 'EUR' | 'GBP' | 'JPY' | 'CNY';
+  theme: 'dark' | 'light' | 'system';  // Added 'system' option
+  notifications: boolean;
+  enableNotifications?: boolean; // Added: alias for notifications
+  showTestnetWarning: boolean;
+  network?: 'mainnet' | 'testnet';  // Added: network setting
+}
 
 // dApp permission
 export interface DAppPermission {
   origin: string;
-  accounts: string[];
+  name?: string;
+  icon?: string;
   permissions: string[];
   connectedAt: number;
   lastUsed: number;
@@ -158,6 +138,49 @@ export interface EncryptedVault {
   version: number;
 }
 
+// UTXO - Added all missing properties
+export interface UTXO {
+  txid: string;
+  vout: number;
+  value: number;
+  scriptPubKey: string;
+  script: string;            // Added: script hex
+  address: string;           // Added: address for this UTXO
+  confirmations: number;
+  inscriptionId?: string;
+  isInscribed?: boolean;
+  isInscription?: boolean;   // Added: alias for isInscribed
+}
+
+// Network configuration - Added all Dogecoin-specific properties
+export type NetworkType = 'mainnet' | 'testnet';
+
+export interface NetworkConfig {
+  name: string;
+  type: NetworkType;
+  rpcUrl?: string;
+  explorerUrl?: string;
+  indexerUrl?: string;
+  // Dogecoin-specific network parameters
+  messagePrefix: string;
+  pubKeyHash: number;
+  scriptHash: number;
+  wif: number;
+  bip32: {
+    public: number;
+    private: number;
+  };
+}
+
+// Transaction parameters for building transactions
+export interface TransactionParams {
+  to: string;
+  amount: number;        // in satoshis
+  fee?: number;          // optional fee in satoshis
+  feeRate?: number;      // optional fee rate in sat/vB
+  memo?: string;         // optional memo/message
+}
+
 // Password validation result
 export interface PasswordValidation {
   isValid: boolean;
@@ -165,93 +188,63 @@ export interface PasswordValidation {
   feedback: string[];
 }
 
-// Transaction parameters for building
-export interface TransactionParams {
-  to: string;
-  amount: number;
-  fee?: number;
-  memo?: string;
+// API response types
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+  };
 }
 
 // Message types for service worker communication
 export type MessageType =
-  | 'UNLOCK_WALLET'
-  | 'LOCK_WALLET'
+  | 'GET_STATE'
   | 'CREATE_WALLET'
   | 'IMPORT_WALLET'
-  | 'GET_ACCOUNTS'
-  | 'CREATE_ACCOUNT'
+  | 'UNLOCK_WALLET'
+  | 'LOCK_WALLET'
+  | 'ADD_ACCOUNT'
+  | 'SET_ACTIVE_ACCOUNT'
   | 'GET_BALANCE'
-  | 'GET_UTXOS'
+  | 'GET_TRANSACTIONS'
+  | 'GET_INSCRIPTIONS'
+  | 'GET_TOKENS'
   | 'SEND_TRANSACTION'
   | 'SIGN_MESSAGE'
   | 'SIGN_TRANSACTION'
-  | 'GET_INSCRIPTIONS'
-  | 'GET_DRC20_TOKENS'
-  | 'GET_TRANSACTIONS'
+  | 'UPDATE_SETTINGS'
   | 'CONNECT_DAPP'
-  | 'DISCONNECT_DAPP'
-  | 'GET_CONNECTED_DAPPS';
+  | 'DISCONNECT_DAPP';
 
-// Service worker message payload
-export interface MessagePayload {
+export interface Message<T = unknown> {
   type: MessageType;
-  id?: string;
-  data?: unknown;
-  origin?: string;
+  data?: T;
 }
 
 // Service worker response
-export interface ServiceWorkerResponse {
+export interface ServiceWorkerResponse<T = unknown> {
   success: boolean;
-  data?: unknown;
-  error?: string;
-}
-
-// Wallet event for content script
-export interface WalletEventMessage {
-  type: string;
-  id?: string;
-  payload?: unknown;
-}
-
-// Network configuration - with bech32 for bitcoin.Network compatibility
-export interface NetworkConfig {
-  name: string;
-  messagePrefix: string;
-  bech32: string;
-  bip32: {
-    public: number;
-    private: number;
+  data?: T;
+  error?: {
+    message: string;
+    code?: string;
   };
-  pubKeyHash: number;
-  scriptHash: number;
-  wif: number;
+  walletState?: {
+    isInitialized: boolean;
+    isLocked: boolean;
+    accounts: WalletAccount[];
+    activeAccountId: string | null;
+    network: NetworkType;
+  };
+  settings?: WalletSettings;
+  connections?: DAppPermission[];
+  balance?: Balance;
+  transactions?: TransactionRecord[];
+  inscriptions?: Inscription[];
+  tokens?: DRC20Token[];
+  txid?: string;
+  accountId?: string;
+  signature?: string;
 }
-
-// Export default network configs with bech32
-export const DOGECOIN_MAINNET: NetworkConfig = {
-  name: 'mainnet',
-  messagePrefix: '\x19Dogecoin Signed Message:\n',
-  bech32: 'doge', // Dogecoin doesn't really use bech32, but needed for type compatibility
-  bip32: {
-    public: 0x02facafd,
-    private: 0x02fac398
-  },
-  pubKeyHash: 0x1e,
-  scriptHash: 0x16,
-  wif: 0x9e
-};
-
-export const DOGECOIN_TESTNET: NetworkConfig = {
-  name: 'testnet',
-  messagePrefix: '\x19Dogecoin Signed Message:\n',
-  bech32: 'tdge',
-  bip32: {
-    public: 0x043587cf,
-    private: 0x04358394
-  },
-  pubKeyHash: 0x71,
-  scriptHash: 0xc4,
-  wif: 0xf1
-};

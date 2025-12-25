@@ -1,8 +1,11 @@
-/**
- * Create Wallet Page - Create a new wallet with password
- */
+// ============================================
+// Dogendary Wallet - Create Wallet Page (FIXED)
+// Fixed: Generate mnemonic first, then call createWallet(mnemonic, password)
+// ============================================
 
 import React, { useState, useCallback } from 'react';
+import * as bip39 from '@scure/bip39';
+import { wordlist } from '@scure/bip39/wordlists/english';
 import { useWalletStore } from '../hooks/useWalletStore';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -27,7 +30,7 @@ export const CreateWalletPage: React.FC = () => {
   const passwordStrength = validatePasswordStrength(password);
   const passwordsMatch = password === confirmPassword && password.length > 0;
 
-  // Handle password step submission
+  // Handle password step submission - FIX: Generate mnemonic here
   const handlePasswordSubmit = useCallback(async () => {
     const strength = validatePasswordStrength(password);
     if (!strength.isValid) {
@@ -41,7 +44,9 @@ export const CreateWalletPage: React.FC = () => {
     }
 
     try {
-      const words = await createWallet(password);
+      // FIX: Generate mnemonic using @scure/bip39
+      const mnemonicPhrase = bip39.generateMnemonic(wordlist);
+      const words = mnemonicPhrase.split(' ');
       setMnemonic(words);
       
       // Select 3 random words to verify
@@ -57,10 +62,10 @@ export const CreateWalletPage: React.FC = () => {
     } catch (error) {
       addToast({ 
         type: 'error', 
-        message: error instanceof Error ? error.message : 'Failed to create wallet' 
+        message: error instanceof Error ? error.message : 'Failed to generate mnemonic' 
       });
     }
-  }, [password, passwordsMatch, createWallet, addToast]);
+  }, [password, passwordsMatch, addToast]);
 
   // Handle mnemonic backup confirmation
   const handleMnemonicConfirm = () => {
@@ -68,15 +73,19 @@ export const CreateWalletPage: React.FC = () => {
     setStep('verify');
   };
 
-  // Handle verification step
-  const handleVerify = () => {
+  // Handle verification step - FIX: Call createWallet with mnemonic AND password
+  const handleVerify = async () => {
     const correct = verifyWords.every(
       ({ index, word }) => verifyInputs[index]?.toLowerCase().trim() === word.toLowerCase()
     );
 
     if (correct) {
-      addToast({ type: 'success', message: 'Wallet created successfully!' });
-      setView('dashboard');
+      // FIX: Now call createWallet with both mnemonic and password
+      const success = await createWallet(mnemonic.join(' '), password);
+      if (success) {
+        addToast({ type: 'success', message: 'Wallet created successfully!' });
+        setView('dashboard');
+      }
     } else {
       addToast({ type: 'error', message: 'Verification failed. Please check your backup.' });
     }
@@ -109,24 +118,27 @@ export const CreateWalletPage: React.FC = () => {
             placeholder="Enter a strong password"
           />
           
-          {/* Password strength indicator */}
-          <div className="mt-2">
-            <div className="flex gap-1 h-1">
-              {[...Array(7)].map((_, i) => (
-                <div
-                  key={i}
-                  className={`flex-1 rounded ${
-                    i < passwordStrength.score ? getStrengthColor() : 'bg-surface-3'
-                  }`}
-                />
-              ))}
+          {password && (
+            <div className="mt-2">
+              <div className="flex gap-1 mb-1">
+                {[1, 2, 3, 4, 5].map((level) => (
+                  <div
+                    key={level}
+                    className={`h-1 flex-1 rounded ${
+                      level <= passwordStrength.score
+                        ? getStrengthColor()
+                        : 'bg-surface-3'
+                    }`}
+                  />
+                ))}
+              </div>
+              {passwordStrength.feedback.length > 0 && (
+                <p className="text-xs text-text-tertiary">
+                  {passwordStrength.feedback[0]}
+                </p>
+              )}
             </div>
-            {passwordStrength.feedback.length > 0 && (
-              <p className="text-xs text-text-tertiary mt-1">
-                {passwordStrength.feedback[0]}
-              </p>
-            )}
-          </div>
+          )}
         </div>
 
         <Input
@@ -136,123 +148,126 @@ export const CreateWalletPage: React.FC = () => {
           onChange={(e) => setConfirmPassword(e.target.value)}
           placeholder="Confirm your password"
           error={confirmPassword && !passwordsMatch ? 'Passwords do not match' : undefined}
+          success={passwordsMatch}
         />
       </div>
 
-      <div className="mt-6 flex gap-3">
+      <div className="mt-6 space-y-3">
         <Button
-          variant="secondary"
-          className="flex-1"
-          onClick={() => setView('unlock')}
-        >
-          Cancel
-        </Button>
-        <Button
-          variant="primary"
-          className="flex-1"
-          disabled={!passwordsMatch || !passwordStrength.isValid || isLoading}
+          className="w-full"
           onClick={handlePasswordSubmit}
+          disabled={!passwordStrength.isValid || !passwordsMatch}
           isLoading={isLoading}
         >
-          Create Wallet
+          Continue
         </Button>
-      </div>
-    </>
-  );
-
-  // Render mnemonic backup step
-  const renderMnemonicStep = () => (
-    <>
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-text-primary mb-2">Backup Recovery Phrase</h2>
-        <p className="text-sm text-text-secondary">
-          Write down these 12 words in order and keep them safe. This is the only way to recover your wallet.
-        </p>
-      </div>
-
-      <Card variant="chrome" className="p-4 mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm text-text-secondary">Recovery Phrase</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowMnemonic(!showMnemonic)}
-          >
-            {showMnemonic ? 'Hide' : 'Show'}
-          </Button>
-        </div>
-        
-        <div className="grid grid-cols-3 gap-2">
-          {mnemonic.map((word, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-2 p-2 bg-surface-2 rounded text-sm"
-            >
-              <span className="text-text-tertiary w-5">{i + 1}.</span>
-              <span className={`text-text-primary ${showMnemonic ? '' : 'blur-sm'}`}>
-                {word}
-              </span>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg mb-4">
-        <p className="text-sm text-yellow-400">
-          ⚠️ Never share your recovery phrase with anyone. Anyone with this phrase can access your funds.
-        </p>
-      </div>
-
-      <Button
-        variant="primary"
-        className="w-full"
-        onClick={handleMnemonicConfirm}
-      >
-        I've Saved My Recovery Phrase
-      </Button>
-    </>
-  );
-
-  // Render verification step
-  const renderVerifyStep = () => (
-    <>
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-text-primary mb-2">Verify Recovery Phrase</h2>
-        <p className="text-sm text-text-secondary">
-          Enter the requested words from your recovery phrase to confirm you've saved it.
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        {verifyWords.map(({ index }) => (
-          <Input
-            key={index}
-            label={`Word #${index + 1}`}
-            value={verifyInputs[index] || ''}
-            onChange={(e) => setVerifyInputs(prev => ({
-              ...prev,
-              [index]: e.target.value
-            }))}
-            placeholder={`Enter word #${index + 1}`}
-          />
-        ))}
-      </div>
-
-      <div className="mt-6 flex gap-3">
         <Button
-          variant="secondary"
-          className="flex-1"
-          onClick={() => setStep('mnemonic')}
+          variant="ghost"
+          className="w-full"
+          onClick={() => setView('welcome')}
         >
           Back
         </Button>
+      </div>
+    </>
+  );
+
+  // Render mnemonic step
+  const renderMnemonicStep = () => (
+    <>
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-text-primary mb-2">Recovery Phrase</h2>
+        <p className="text-sm text-text-secondary">
+          Write down these 12 words in order. They are the only way to recover your wallet.
+        </p>
+      </div>
+
+      <Card className="bg-surface-2 p-4 mb-4">
+        <div className={`grid grid-cols-3 gap-2 ${showMnemonic ? '' : 'blur-sm'}`}>
+          {mnemonic.map((word, index) => (
+            <div key={index} className="flex items-center gap-2 py-1">
+              <span className="text-xs text-text-tertiary w-5">{index + 1}.</span>
+              <span className="text-sm text-text-primary">{word}</span>
+            </div>
+          ))}
+        </div>
+        {!showMnemonic && (
+          <button
+            onClick={() => setShowMnemonic(true)}
+            className="absolute inset-0 flex items-center justify-center bg-surface-2/50"
+          >
+            <span className="text-sm text-neon-cyan">Click to reveal</span>
+          </button>
+        )}
+      </Card>
+
+      <div className="p-3 bg-neon-orange/10 border border-neon-orange/30 rounded-lg mb-6">
+        <p className="text-xs text-neon-orange">
+          ⚠️ Never share your recovery phrase. Anyone with these words can steal your funds.
+        </p>
+      </div>
+
+      <div className="space-y-3">
         <Button
-          variant="primary"
-          className="flex-1"
+          className="w-full"
+          onClick={handleMnemonicConfirm}
+          disabled={!showMnemonic}
+        >
+          I've Written It Down
+        </Button>
+        <Button
+          variant="ghost"
+          className="w-full"
+          onClick={() => setStep('password')}
+        >
+          Back
+        </Button>
+      </div>
+    </>
+  );
+
+  // Render verify step
+  const renderVerifyStep = () => (
+    <>
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-text-primary mb-2">Verify Backup</h2>
+        <p className="text-sm text-text-secondary">
+          Enter the following words from your recovery phrase to confirm you've saved it.
+        </p>
+      </div>
+
+      <div className="space-y-4 mb-6">
+        {verifyWords
+          .sort((a, b) => a.index - b.index)
+          .map(({ index }) => (
+            <Input
+              key={index}
+              label={`Word #${index + 1}`}
+              value={verifyInputs[index] || ''}
+              onChange={(e) => setVerifyInputs(prev => ({
+                ...prev,
+                [index]: e.target.value
+              }))}
+              placeholder={`Enter word #${index + 1}`}
+            />
+          ))}
+      </div>
+
+      <div className="space-y-3">
+        <Button
+          className="w-full"
           onClick={handleVerify}
           disabled={verifyWords.some(({ index }) => !verifyInputs[index])}
+          isLoading={isLoading}
         >
-          Verify & Finish
+          Verify & Create Wallet
+        </Button>
+        <Button
+          variant="ghost"
+          className="w-full"
+          onClick={() => setStep('mnemonic')}
+        >
+          Back
         </Button>
       </div>
     </>
@@ -262,11 +277,11 @@ export const CreateWalletPage: React.FC = () => {
     <div className="flex flex-col h-full p-4">
       {/* Progress indicator */}
       <div className="flex gap-2 mb-6">
-        {(['password', 'mnemonic', 'verify'] as Step[]).map((s, i) => (
+        {['password', 'mnemonic', 'verify'].map((s, index) => (
           <div
             key={s}
-            className={`flex-1 h-1 rounded ${
-              i <= ['password', 'mnemonic', 'verify'].indexOf(step)
+            className={`h-1 flex-1 rounded ${
+              ['password', 'mnemonic', 'verify'].indexOf(step) >= index
                 ? 'bg-neon-cyan'
                 : 'bg-surface-3'
             }`}
@@ -274,7 +289,6 @@ export const CreateWalletPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Step content */}
       {step === 'password' && renderPasswordStep()}
       {step === 'mnemonic' && renderMnemonicStep()}
       {step === 'verify' && renderVerifyStep()}

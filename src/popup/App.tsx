@@ -1,121 +1,131 @@
-/**
- * App - Main application component
- */
+// ============================================
+// Dogendary Wallet - App.tsx (FIXED)
+// Main popup application with proper routing
+// ============================================
+// 
+// FIX SUMMARY:
+// 1. Properly calls initialize() on mount
+// 2. Shows loading state during initialization
+// 3. Routes based on wallet state:
+//    - No vault exists → WelcomePage (create/import)
+//    - Vault exists + locked → UnlockPage
+//    - Vault exists + unlocked → DashboardPage
+// ============================================
 
-import React from 'react';
-import type { ViewType } from '@/types';
+import React, { useEffect, useState } from 'react';
 import { useWalletStore } from './hooks/useWalletStore';
-import { Toast } from './components/ui/Toast';
 
 // Page imports
+import { WelcomePage } from './pages/WelcomePage';
 import { CreateWalletPage } from './pages/CreateWalletPage';
 import { ImportWalletPage } from './pages/ImportWalletPage';
+import { UnlockPage } from './pages/UnlockPage';
+import { DashboardPage } from './pages/DashboardPage';
 import { SendPage } from './pages/SendPage';
+import { ReceivePage } from './pages/ReceivePage';
 import { InscriptionsPage } from './pages/InscriptionsPage';
 import { TokensPage } from './pages/TokensPage';
 import { TransactionsPage } from './pages/TransactionsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { AccountsPage } from './pages/AccountsPage';
 
-// Lazy load other pages as needed
-const UnlockPage = React.lazy(() => import('./pages/UnlockPage'));
-const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
-const ReceivePage = React.lazy(() => import('./pages/ReceivePage'));
+// Layout imports
+import { Header } from './components/layout/Header';
+import { Navigation } from './components/layout/Navigation';
+import { Toast } from './components/ui/Toast';
 
-// Header component
-const Header: React.FC = () => {
-  const { activeAccount, balance, lock } = useWalletStore();
-  
+// Loading spinner component
+function LoadingSpinner(): React.ReactElement {
   return (
-    <header className="flex items-center justify-between p-4 border-b border-surface-3">
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center">
-          <span className="text-lg">🐕</span>
-        </div>
-        <div>
-          <div className="text-sm font-medium text-text-primary">
-            {activeAccount?.label || 'Dogendary'}
-          </div>
-          <div className="text-xs text-text-secondary">
-            {balance.total.toFixed(4)} DOGE
-          </div>
-        </div>
-      </div>
-      <button
-        onClick={lock}
-        className="p-2 rounded-lg hover:bg-surface-2 transition-colors"
-        title="Lock wallet"
-      >
-        🔒
-      </button>
-    </header>
+    <div className="flex flex-col h-screen w-[360px] bg-bg-primary items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-4 border-neon-cyan border-t-transparent" />
+      <p className="mt-4 text-text-secondary text-sm">Initializing wallet...</p>
+    </div>
   );
-};
+}
 
-// Navigation component
-const Navigation: React.FC = () => {
-  const { currentView, setView } = useWalletStore();
-  
-  const navItems: { view: ViewType; icon: string; label: string }[] = [
-    { view: 'dashboard', icon: '🏠', label: 'Home' },
-    { view: 'send', icon: '↑', label: 'Send' },
-    { view: 'receive', icon: '↓', label: 'Receive' },
-    { view: 'inscriptions', icon: '🖼️', label: 'NFTs' },
-    { view: 'settings', icon: '⚙️', label: 'Settings' }
-  ];
-  
-  return (
-    <nav className="flex items-center justify-around p-2 border-t border-surface-3 bg-surface-1">
-      {navItems.map(({ view, icon, label }) => (
-        <button
-          key={view}
-          onClick={() => setView(view)}
-          className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
-            currentView === view
-              ? 'text-neon-cyan bg-neon-cyan/10'
-              : 'text-text-secondary hover:text-text-primary hover:bg-surface-2'
-          }`}
-        >
-          <span className="text-lg">{icon}</span>
-          <span className="text-xs">{label}</span>
-        </button>
-      ))}
-    </nav>
-  );
-};
+export function App(): React.ReactElement {
+  const {
+    isInitialized,
+    isLocked,
+    currentView,
+    toasts,
+    removeToast,
+    initialize,
+  } = useWalletStore();
 
-// Main App component
-export const App: React.FC = () => {
-  const { currentView, isLocked, toasts, removeToast } = useWalletStore();
+  // Track if we've completed initial load
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Render the appropriate page based on current view
-  const renderPage = (): React.ReactNode => {
-    // Auth pages (no header/nav)
-    if (currentView === 'create-wallet') return <CreateWalletPage />;
-    if (currentView === 'import-wallet') return <ImportWalletPage />;
-    if (currentView === 'unlock' || isLocked) {
-      return (
-        <React.Suspense fallback={<div className="p-4">Loading...</div>}>
-          <UnlockPage />
-        </React.Suspense>
-      );
+  // Initialize wallet state on mount
+  useEffect(() => {
+    const initializeWallet = async () => {
+      try {
+        console.log('[App] Starting initialization...');
+        await initialize();
+        console.log('[App] Initialization complete');
+      } catch (error) {
+        console.error('[App] Initialization error:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeWallet();
+  }, [initialize]);
+
+  // Debug logging for state changes
+  useEffect(() => {
+    console.log('[App] State changed:', {
+      isInitialized,
+      isLocked,
+      currentView,
+      isLoading,
+    });
+  }, [isInitialized, isLocked, currentView, isLoading]);
+
+  // Show loading spinner during initialization
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  // Render the current page based on view
+  const renderPage = (): React.ReactElement => {
+    // Priority 1: If wallet not initialized, show welcome or create/import
+    if (!isInitialized) {
+      switch (currentView) {
+        case 'create-wallet':
+          return <CreateWalletPage />;
+        case 'import-wallet':
+          return <ImportWalletPage />;
+        default:
+          // Default for uninitialized wallet is welcome page
+          return <WelcomePage />;
+      }
     }
 
-    // Main pages with header/nav
+    // Priority 2: If wallet is locked, show unlock page
+    if (isLocked) {
+      return <UnlockPage />;
+    }
+
+    // Priority 3: Wallet is unlocked, show requested view
     switch (currentView) {
+      case 'welcome':
+        // If somehow we get here with initialized wallet, redirect to dashboard
+        return <DashboardPage />;
+      case 'create-wallet':
+        return <CreateWalletPage />;
+      case 'import-wallet':
+        return <ImportWalletPage />;
+      case 'unlock':
+        return <UnlockPage />;
       case 'dashboard':
-        return (
-          <React.Suspense fallback={<div className="p-4">Loading...</div>}>
-            <DashboardPage />
-          </React.Suspense>
-        );
+        return <DashboardPage />;
       case 'send':
         return <SendPage />;
       case 'receive':
-        return (
-          <React.Suspense fallback={<div className="p-4">Loading...</div>}>
-            <ReceivePage />
-          </React.Suspense>
-        );
+        return <ReceivePage />;
       case 'inscriptions':
         return <InscriptionsPage />;
       case 'tokens':
@@ -124,47 +134,45 @@ export const App: React.FC = () => {
         return <TransactionsPage />;
       case 'settings':
         return <SettingsPage />;
+      case 'accounts':
+        return <AccountsPage />;
       default:
-        return (
-          <React.Suspense fallback={<div className="p-4">Loading...</div>}>
-            <DashboardPage />
-          </React.Suspense>
-        );
+        return <DashboardPage />;
     }
   };
 
-  // Check if we should show header/nav
-  const showChrome = !isLocked && 
-    currentView !== 'create-wallet' && 
-    currentView !== 'import-wallet' && 
-    currentView !== 'unlock';
+  // Determine if we should show header/navigation
+  // Hide chrome for onboarding and unlock flows
+  const showChrome = isInitialized && !isLocked && 
+    !['welcome', 'create-wallet', 'import-wallet', 'unlock'].includes(currentView);
 
   return (
-    <div className="flex flex-col h-screen w-[360px] bg-bg-primary text-text-primary">
-      {/* Header */}
+    <div className="flex flex-col h-screen w-[360px] bg-bg-primary text-text-primary overflow-hidden">
+      {/* Header - only when wallet is unlocked and not in onboarding */}
       {showChrome && <Header />}
       
-      {/* Main content */}
+      {/* Main content area */}
       <main className="flex-1 overflow-y-auto">
         {renderPage()}
       </main>
       
-      {/* Navigation */}
+      {/* Bottom navigation - only when wallet is unlocked */}
       {showChrome && <Navigation />}
       
       {/* Toast notifications */}
-      <div className="fixed bottom-20 left-4 right-4 flex flex-col gap-2 z-50">
+      <div className="fixed bottom-20 left-4 right-4 flex flex-col gap-2 z-50 pointer-events-none">
         {toasts.map((toast) => (
-          <Toast
-            key={toast.id}
-            type={toast.type}
-            message={toast.message}
-            onClose={() => removeToast(toast.id)}
-          />
+          <div key={toast.id} className="pointer-events-auto">
+            <Toast
+              type={toast.type}
+              message={toast.message}
+              onClose={() => removeToast(toast.id)}
+            />
+          </div>
         ))}
       </div>
     </div>
   );
-};
+}
 
 export default App;

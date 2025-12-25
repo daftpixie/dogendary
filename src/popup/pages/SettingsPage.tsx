@@ -1,6 +1,6 @@
 // ============================================
-// Dogendary Wallet - Settings Page
-// Wallet settings and preferences
+// Dogendary Wallet - Settings Page (FIXED)
+// Fixed: settings.network default value
 // ============================================
 
 import React from 'react';
@@ -123,6 +123,12 @@ export const SettingsPage: React.FC = () => {
   // Get notifications value (support both property names)
   const notificationsEnabled = settings.notifications ?? settings.enableNotifications ?? true;
 
+  // FIX: Get network value with default fallback to satisfy string type requirement
+  const networkValue = settings.network ?? 'mainnet';
+
+  // FIX: Get theme value with default fallback
+  const themeValue = settings.theme ?? 'dark';
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -143,7 +149,7 @@ export const SettingsPage: React.FC = () => {
             description="Select Dogecoin network"
             action={
               <Select
-                value={settings.network}
+                value={networkValue}
                 options={[
                   { value: 'mainnet', label: 'Mainnet' },
                   { value: 'testnet', label: 'Testnet' },
@@ -214,7 +220,7 @@ export const SettingsPage: React.FC = () => {
             description="Choose app appearance"
             action={
               <Select
-                value={settings.theme}
+                value={themeValue}
                 options={[
                   { value: 'dark', label: 'Dark' },
                   { value: 'light', label: 'Light' },

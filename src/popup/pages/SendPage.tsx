@@ -1,5 +1,6 @@
 /**
  * Send Page - Send DOGE to another address
+ * FIXED: balance null checks, sendTransaction return type handling
  */
 
 import React, { useState } from 'react';
@@ -25,16 +26,21 @@ export const SendPage: React.FC = () => {
   const [selectedFee, setSelectedFee] = useState(FEE_OPTIONS[1].value);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  // FIX: Add null check for balance - default to 0 if null
+  const balanceTotal = balance?.total ?? 0;
+
   // Validation
   const isValidAddress = recipient ? isValidDogeAddress(recipient) : true;
   const amountNum = parseFloat(amount) || 0;
   const totalAmount = amountNum + selectedFee;
-  const hasEnoughBalance = balance.total >= totalAmount;
+  // FIX: Use balanceTotal (already null-checked)
+  const hasEnoughBalance = balanceTotal >= totalAmount;
   const canSend = recipient && isValidAddress && amountNum > 0 && hasEnoughBalance;
 
   // Handle max amount
   const handleSetMax = () => {
-    const maxAmount = Math.max(0, balance.total - selectedFee);
+    // FIX: Use balanceTotal (already null-checked)
+    const maxAmount = Math.max(0, balanceTotal - selectedFee);
     setAmount(maxAmount.toFixed(8));
   };
 
@@ -43,12 +49,20 @@ export const SendPage: React.FC = () => {
     if (!canSend) return;
 
     try {
-      const txid = await sendTransaction(recipient, amountNum);
-      addToast({
-        type: 'success',
-        message: `Transaction sent! TxID: ${txid.slice(0, 8)}...`
-      });
-      setView('dashboard');
+      // FIX: sendTransaction returns { success: boolean; txid?: string; error?: string }
+      const result = await sendTransaction(recipient, amountNum);
+      if (result.success && result.txid) {
+        addToast({
+          type: 'success',
+          message: `Transaction sent! TxID: ${result.txid.slice(0, 8)}...`
+        });
+        setView('dashboard');
+      } else {
+        addToast({
+          type: 'error',
+          message: result.error || 'Failed to send transaction'
+        });
+      }
     } catch (error) {
       addToast({
         type: 'error',
@@ -130,7 +144,8 @@ export const SendPage: React.FC = () => {
       <Card variant="chrome" className="p-4 mb-4">
         <div className="text-sm text-text-secondary">Available Balance</div>
         <div className="text-2xl font-bold text-text-primary">
-          {formatNumber(balance.total)} DOGE
+          {/* FIX: Use balanceTotal (already null-checked) */}
+          {formatNumber(balanceTotal)} DOGE
         </div>
       </Card>
 

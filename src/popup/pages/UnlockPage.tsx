@@ -1,113 +1,166 @@
 // ============================================
-// Dogendary Wallet - Unlock Page
-// Password entry to unlock wallet
+// Dogendary Wallet - Unlock Page (FIXED)
+// Password entry to unlock existing wallet
+// ============================================
+// 
+// FIX: Added working "Restore with recovery phrase" link
+// that navigates to import-wallet page
 // ============================================
 
-import React, { useState } from 'react';
-import { Wallet, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useWalletStore } from '../hooks/useWalletStore';
-import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { 
+  Eye, 
+  EyeOff, 
+  ArrowRight,
+  Wallet,
+  AlertCircle
+} from 'lucide-react';
 
-export const UnlockPage: React.FC = () => {
-  const { unlockWallet, isLoading, addToast } = useWalletStore();
+export function UnlockPage(): React.ReactElement {
+  const { unlockWallet, setView, isLoading } = useWalletStore();
+  
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [attempts, setAttempts] = useState(0);
+  
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleUnlock = async () => {
+  // Focus password input on mount
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
     if (!password) {
-      addToast({ type: 'error', message: 'Please enter your password' });
+      setError('Please enter your password');
       return;
     }
-
+    
     const success = await unlockWallet(password);
+    
     if (!success) {
-      addToast({ type: 'error', message: 'Invalid password' });
+      setAttempts(prev => prev + 1);
+      setError('Incorrect password');
+      setPassword('');
+      
+      // Focus input after failed attempt
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleUnlock();
-    }
+  // Handle "forgot password" - redirect to import
+  const handleForgotPassword = () => {
+    setView('import-wallet');
   };
 
   return (
-    <div className="flex flex-col h-full p-6">
-      {/* Logo */}
-      <div className="flex-1 flex flex-col items-center justify-center">
-        <div className="relative w-20 h-20 mb-6">
-          <div className="absolute inset-0 bg-gradient-to-br from-neon-cyan to-neon-purple rounded-2xl opacity-50 blur-lg animate-pulse" />
-          <div className="relative w-full h-full bg-gradient-to-br from-neon-cyan to-neon-purple rounded-2xl flex items-center justify-center">
-            <Wallet className="w-10 h-10 text-white" />
+    <div className="flex flex-col h-full p-6 bg-gradient-to-b from-bg-primary to-bg-deepest">
+      {/* Logo Section */}
+      <div className="flex flex-col items-center pt-12 pb-8">
+        {/* Wallet Icon */}
+        <div className="relative mb-6">
+          <div className="absolute inset-0 bg-neon-cyan/20 blur-xl rounded-full" />
+          <div className="relative w-16 h-16 bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 rounded-2xl flex items-center justify-center border border-neon-cyan/30">
+            <Wallet className="w-8 h-8 text-neon-cyan" />
           </div>
         </div>
-
-        <h1 className="text-xl font-bold text-text-primary mb-2">
+        
+        {/* Title */}
+        <h1 className="text-2xl font-display font-bold text-text-primary mb-2">
           Welcome Back
         </h1>
-        <p className="text-sm text-text-secondary text-center mb-8">
+        <p className="text-sm text-text-secondary text-center">
           Enter your password to unlock your wallet
         </p>
-
-        {/* Password input */}
-        <Card variant="default" className="w-full p-4">
-          <Input
-            type={showPassword ? 'text' : 'password'}
-            label="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={handleKeyPress}
-            placeholder="Enter your password"
-            autoFocus
-            rightIcon={
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="text-text-tertiary hover:text-text-secondary transition-colors"
-              >
-                {showPassword ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
-                )}
-              </button>
-            }
-          />
-        </Card>
       </div>
 
-      {/* Unlock button */}
-      <Button
-        variant="primary"
-        size="lg"
-        className="w-full"
-        onClick={handleUnlock}
-        disabled={!password || isLoading}
-        isLoading={isLoading}
-      >
-        Unlock Wallet
-        <ArrowRight className="w-5 h-5 ml-2" />
-      </Button>
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
+        {/* Password Input */}
+        <div className="space-y-4">
+          <div className="relative">
+            <Input
+              ref={inputRef}
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={`w-full pr-12 ${error ? 'border-neon-orange' : ''}`}
+              disabled={isLoading}
+              aria-label="Password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-secondary transition-colors"
+              tabIndex={-1}
+            >
+              {showPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+          
+          {/* Error Message */}
+          {error && (
+            <div className="flex items-center gap-2 text-neon-orange text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{error}</span>
+              {attempts >= 3 && (
+                <span className="text-text-tertiary ml-auto">
+                  ({attempts} attempts)
+                </span>
+              )}
+            </div>
+          )}
+        </div>
 
-      {/* Forgot password hint */}
-      <p className="text-center text-xs text-text-tertiary mt-4">
-        Forgot your password?{' '}
-        <button 
-          className="text-neon-cyan hover:underline"
-          onClick={() => {
-            addToast({ 
-              type: 'info', 
-              message: 'Use your recovery phrase to restore your wallet' 
-            });
-          }}
-        >
-          Restore with recovery phrase
-        </button>
-      </p>
+        {/* Submit Button */}
+        <div className="mt-8">
+          <Button
+            type="submit"
+            disabled={isLoading || !password}
+            className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-neon-cyan to-neon-blue hover:from-neon-cyan/90 hover:to-neon-blue/90 text-bg-primary rounded-xl flex items-center justify-center gap-3 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-bg-primary border-t-transparent" />
+                Unlocking...
+              </>
+            ) : (
+              <>
+                Unlock Wallet
+                <ArrowRight className="w-5 h-5" />
+              </>
+            )}
+          </Button>
+        </div>
+
+        {/* Forgot Password / Restore Link */}
+        <div className="mt-auto pt-8 pb-4 text-center">
+          <p className="text-sm text-text-tertiary">
+            Forgot your password?{' '}
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              className="text-neon-cyan hover:text-neon-cyan/80 underline underline-offset-2 transition-colors"
+            >
+              Restore with recovery phrase
+            </button>
+          </p>
+        </div>
+      </form>
     </div>
   );
-};
+}
 
 export default UnlockPage;

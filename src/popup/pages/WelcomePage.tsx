@@ -1,81 +1,101 @@
 // ============================================
-// Dogendary Wallet - Welcome Page
-// Initial landing page for new/returning users
+// Dogendary Wallet - Welcome Page (FIXED)
+// Fixed: Removed unused Card import
+// ============================================
+// 
+// This page is shown when:
+// - No wallet vault exists (isInitialized === false)
+// - User needs to create or import a wallet
 // ============================================
 
 import React from 'react';
-import { Wallet, Download, Key } from 'lucide-react';
 import { useWalletStore } from '../hooks/useWalletStore';
 import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
+// REMOVED: import { Card, CardContent } from '../components/ui/Card';
+import { 
+  Plus, 
+  Download, 
+  Shield, 
+  Zap, 
+  Lock 
+} from 'lucide-react';
 
-export const WelcomePage: React.FC = () => {
+export function WelcomePage(): React.ReactElement {
   const { setView } = useWalletStore();
 
   return (
-    <div className="flex flex-col h-full p-6">
-      {/* Logo and title */}
-      <div className="flex-1 flex flex-col items-center justify-center text-center">
-        {/* Animated logo */}
-        <div className="relative w-24 h-24 mb-6">
-          <div className="absolute inset-0 bg-gradient-to-br from-neon-cyan to-neon-purple rounded-2xl opacity-50 blur-xl animate-pulse" />
-          <div className="relative w-full h-full bg-gradient-to-br from-neon-cyan to-neon-purple rounded-2xl flex items-center justify-center">
-            <Wallet className="w-12 h-12 text-white" />
+    <div className="flex flex-col h-full p-6 bg-gradient-to-b from-bg-primary to-bg-deepest">
+      {/* Logo and Title Section */}
+      <div className="flex flex-col items-center pt-8 pb-6">
+        {/* Wallet Icon with Glow */}
+        <div className="relative mb-6">
+          <div className="absolute inset-0 bg-neon-cyan/20 blur-xl rounded-full" />
+          <div className="relative w-20 h-20 bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 rounded-2xl flex items-center justify-center border border-neon-cyan/30">
+            <Shield className="w-10 h-10 text-neon-cyan" />
           </div>
         </div>
-
-        <h1 className="text-2xl font-bold text-text-primary mb-2">
-          Dogendary Wallet
+        
+        {/* Brand Name */}
+        <h1 className="text-3xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-purple mb-2">
+          Dogendary
         </h1>
-        <p className="text-text-secondary mb-8 max-w-xs">
-          Your gateway to Dogecoin inscriptions, DRC-20 tokens, and more.
+        <p className="text-sm text-text-secondary text-center max-w-[280px]">
+          Your gateway to Dogecoin, Doginals, and DRC-20 tokens
         </p>
-
-        {/* Feature highlights */}
-        <div className="grid grid-cols-3 gap-3 mb-8 w-full max-w-xs">
-          <Card variant="chrome" padding="sm" className="text-center">
-            <div className="text-neon-cyan mb-1">🐕</div>
-            <p className="text-xs text-text-secondary">Dogecoin</p>
-          </Card>
-          <Card variant="chrome" padding="sm" className="text-center">
-            <div className="text-neon-purple mb-1">🖼️</div>
-            <p className="text-xs text-text-secondary">Inscriptions</p>
-          </Card>
-          <Card variant="chrome" padding="sm" className="text-center">
-            <div className="text-neon-green mb-1">🪙</div>
-            <p className="text-xs text-text-secondary">DRC-20</p>
-          </Card>
-        </div>
       </div>
 
-      {/* Action buttons */}
-      <div className="space-y-3">
+      {/* Features Preview */}
+      <div className="grid grid-cols-3 gap-3 mb-8">
+        <FeatureItem icon={Zap} label="Fast" />
+        <FeatureItem icon={Shield} label="Secure" />
+        <FeatureItem icon={Lock} label="Private" />
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex flex-col gap-4 flex-1 justify-end pb-8">
+        {/* Create New Wallet */}
         <Button
-          variant="primary"
-          size="lg"
-          className="w-full"
-          onClick={() => setView('create')}
+          onClick={() => setView('create-wallet')}
+          className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-neon-cyan to-neon-blue hover:from-neon-cyan/90 hover:to-neon-blue/90 text-bg-primary rounded-xl flex items-center justify-center gap-3 transition-all duration-200 hover:shadow-lg hover:shadow-neon-cyan/25"
         >
-          <Key className="w-5 h-5 mr-2" />
+          <Plus className="w-5 h-5" />
           Create New Wallet
         </Button>
+
+        {/* Import Existing Wallet */}
         <Button
-          variant="secondary"
-          size="lg"
-          className="w-full"
-          onClick={() => setView('import')}
+          variant="outline"
+          onClick={() => setView('import-wallet')}
+          className="w-full py-4 text-lg font-semibold border-2 border-white/20 hover:border-neon-cyan/50 text-text-primary rounded-xl flex items-center justify-center gap-3 transition-all duration-200 hover:bg-white/5"
         >
-          <Download className="w-5 h-5 mr-2" />
+          <Download className="w-5 h-5" />
           Import Existing Wallet
         </Button>
       </div>
 
       {/* Footer */}
-      <p className="text-center text-xs text-text-tertiary mt-6">
-        By continuing, you agree to our Terms of Service and Privacy Policy.
-      </p>
+      <div className="text-center pb-4">
+        <p className="text-xs text-text-tertiary">
+          Powered by 24HRMVP
+        </p>
+      </div>
     </div>
   );
-};
+}
+
+// Feature item component
+interface FeatureItemProps {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+}
+
+function FeatureItem({ icon: Icon, label }: FeatureItemProps): React.ReactElement {
+  return (
+    <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-white/5 border border-white/10">
+      <Icon className="w-5 h-5 text-neon-cyan" />
+      <span className="text-xs text-text-secondary">{label}</span>
+    </div>
+  );
+}
 
 export default WelcomePage;
